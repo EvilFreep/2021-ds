@@ -21,25 +21,23 @@ namespace Valuator.Pages
             _logger = logger;
         }
 
-        public IActionResult OnPost(string text, string country)
+        public IActionResult OnPost(string text)
         {
             _logger.LogDebug(text);
 
             if (string.IsNullOrEmpty(text)) Redirect("/");
 
             var id = Guid.NewGuid().ToString();
-            _logger.LogInformation($"{country} : {id} - OnPost");
 
             //Подсчёт similarity и сохранение в БД по ключу similarityKey
             var similarity = GetSimilarity(text);
-            _storage.StoreShard(id, country);
-            _storage.Store(country, Constants.SimilarityKeyPrefix + id, similarity.ToString());
+            _storage.Store(Constants.SimilarityKeyPrefix + id, similarity.ToString());
 
             _messageBroker.Publish(Constants.SimilarityKeyCalculated,
-                JsonSerializer.Serialize(new SimilarityObject {Id = id, Value = similarity}));
+                JsonSerializer.Serialize(new Similarity {Id = id, Value = similarity}));
 
             //Сохраение в БД
-            _storage.Store(country, Constants.TextKeyPrefix + id, text);
+            _storage.Store(Constants.TextKeyPrefix + id, text);
 
             _messageBroker.Publish(Constants.RankKeyProcessing, id);
 
@@ -48,7 +46,11 @@ namespace Valuator.Pages
 
         private int GetSimilarity(string text)
         {
-            return _storage.HasTextDuplicates(text) ? 1 : 0;
+            var keys = _storage.GetKeys();
+
+            return keys.Any(item => item.Substring(0, 5) == Constants.TextKeyPrefix && _storage.Load(item) == text)
+                ? 1
+                : 0;
         }
     }
 }
