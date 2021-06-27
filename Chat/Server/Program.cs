@@ -17,7 +17,7 @@ namespace Server
             // Привязываем сокет ко всем интерфейсам на текущей машинe
             IPAddress ipAddress = IPAddress.Any; 
             
-            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, 11000);
+            IPEndPoint localEndPoint = new IPEndPoint(ipAddress, port);
 
             // CREATE
             Socket listener = new Socket(
